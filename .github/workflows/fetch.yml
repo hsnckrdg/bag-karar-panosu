@@ -2,11 +2,11 @@ name: Günlük veri çekimi
 
 on:
   schedule:
-    - cron: "0 4 * * *"
-  workflow_dispatch:
+    - cron: "0 4 * * *"      # her gün 04:00 UTC (07:00 TSİ)
+  workflow_dispatch:          # elle de çalıştırılabilir
 
 permissions:
-  contents: write
+  contents: write             # sadece data/ commit'i için
 
 jobs:
   fetch:
