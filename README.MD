@@ -16,3 +16,10 @@ CV cümlesi
 Yapay zekâ kullanım beyanı
 
 (hangi araç, hangi iş için, çıktıyı nasıl değiştirdim: doldur)
+### Bulut Mimari Taslağı
+```mermaid
+graph TD
+    A[Kullanıcı] -->|İstekler| B(Serverless API Vekili)
+    B -->|IP Hız Sınırı| C{Allowlist & Cache}
+    C -->|Limit Aşıldı| E[429 Too Many Requests]
+    C -->|İzinli| F[Open-Meteo API]
