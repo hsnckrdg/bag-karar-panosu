@@ -372,21 +372,21 @@ const archiveCutoffISO = () => {
         labels: gddLabels,
         datasets: [
           {
-            type: "line", label: "10 yıllık değişim aralığı (alt sınır)",
+            type: "line", label: "__rangeLow",
             data: rangeLow, borderColor: "rgba(40,96,68,0)", pointRadius: 0,
             borderWidth: 0, fill: false
           },
           {
-            type: "line", label: "10 yıllık değişim aralığı (üst sınır)",
+            type: "line", label: "10 yıllık GDD aralığı",
             data: rangeHigh, borderColor: "rgba(40,96,68,0)", pointRadius: 0,
             borderWidth: 0, backgroundColor: "rgba(40,96,68,.14)", fill: "-1"
           },
           {
-            type: "bar", label: "Yıllık GDD (°C·gün)", data: gddValues,
+            type: "bar", label: "Yıllık GDD", data: gddValues,
             backgroundColor: gddLabels.map((_, i) => i === gddLabels.length - 1 ? "#b56a00" : "#6e9876")
           },
           {
-            type: "line", label: "Son 10 yıl ortalaması",
+            type: "line", label: "10 yıl ortalaması",
             data: avgLine, borderColor: "#183d2b", borderWidth: 3,
             borderDash: [7, 5], pointRadius: 0, fill: false
           }
@@ -398,7 +398,18 @@ const archiveCutoffISO = () => {
         scales: {
           y: { beginAtZero: true, title: { display: true, text: "Birikimli GDD (°C·gün)" } }
         },
-        plugins: { legend: { labels: { font: { size: 13 } } } }
+        plugins: {
+          legend: {
+            position: "top",
+            align: "start",
+            labels: {
+              font: { size: 13 },
+              boxWidth: 24,
+              padding: 12,
+              filter: (item) => item.text !== "__rangeLow"
+            }
+          }
+        }
       }
     });
     $("gddSummary").textContent = currentAverage != null && historicalAverage != null
