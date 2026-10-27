@@ -68,7 +68,6 @@
       .wrap { padding: 14px; } header { padding: 22px; flex-direction: column; align-items: flex-start; }
       .grid { grid-template-columns: 1fr; } .charts { grid-template-columns: 1fr; }
       .field { flex: 1 1 100%; } .toolbar button { width: 100%; }
-      .chart-wrap { min-height: 340px; }
     }
   </style>
 </head>
@@ -167,10 +166,6 @@
     { name: "Sarıgöl", latitude: 38.239, longitude: 28.696 }
   ];
   const BASE_TEMP = 10;
-
-  // Ödev erişilebilirlik şartı: grafiklerdeki yazılar da en az 18 px.
-  Chart.defaults.font.size = 18;
-
   let records = [];
   let weatherChart = null;
   let gddChart = null;
@@ -332,12 +327,8 @@ const archiveCutoffISO = () => {
         { label: "En yüksek yağış (mm)", data: rainMax, type: "bar", backgroundColor: "rgba(56,112,170,.45)", borderColor: "#245d91", yAxisID: "y1" }
       ]},
       options: { responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
-        scales: {
-          x: { ticks: { font: { size: 18 }, maxRotation: 45, minRotation: 45 } },
-          y: { ticks: { font: { size: 18 } }, title: { display: true, text: "Sıcaklık (°C)", font: { size: 18 } } },
-          y1: { position: "right", ticks: { font: { size: 18 } }, title: { display: true, text: "Yağış (mm)", font: { size: 18 } }, grid: { drawOnChartArea: false }, beginAtZero: true }
-        },
-        plugins: { legend: { labels: { font: { size: 18 } } } } }
+        scales: { y: { title: { display: true, text: "Sıcaklık (°C)" } }, y1: { position: "right", title: { display: true, text: "Yağış (mm)" }, grid: { drawOnChartArea: false }, beginAtZero: true } },
+        plugins: { legend: { labels: { font: { size: 14 } } } } }
     });
     const maxTemp = Math.max(...maxAvg.filter(Number.isFinite));
     const wetDay = labels[rainMax.indexOf(Math.max(...rainMax))];
@@ -405,10 +396,9 @@ const archiveCutoffISO = () => {
         responsive: true, maintainAspectRatio: false,
         interaction: { mode: "index", intersect: false },
         scales: {
-          x: { ticks: { font: { size: 18 }, maxRotation: 45, minRotation: 45 } },
-          y: { beginAtZero: true, ticks: { font: { size: 18 } }, title: { display: true, text: "Birikimli GDD (°C·gün)", font: { size: 18 } } }
+          y: { beginAtZero: true, title: { display: true, text: "Birikimli GDD (°C·gün)" } }
         },
-        plugins: { legend: { labels: { font: { size: 18 } } } }
+        plugins: { legend: { labels: { font: { size: 13 } } } }
       }
     });
     $("gddSummary").textContent = currentAverage != null && historicalAverage != null
@@ -474,6 +464,7 @@ const archiveCutoffISO = () => {
 
   function render() {
     const data = selectedRecords();
+
     if (!data.length) {
       renderEmptyState();
       return;
@@ -482,10 +473,12 @@ const archiveCutoffISO = () => {
     const hasUsableData = data.some(r =>
       Array.isArray(r.dates) &&
       r.dates.length > 0 &&
-      (Number.isFinite(r.currentMax) ||
-       Number.isFinite(r.currentMin) ||
-       Number.isFinite(r.currentRain) ||
-       Number.isFinite(r.seasonGdd))
+      (
+        Number.isFinite(r.currentMax) ||
+        Number.isFinite(r.currentMin) ||
+        Number.isFinite(r.currentRain) ||
+        Number.isFinite(r.seasonGdd)
+      )
     );
 
     if (!hasUsableData) {
