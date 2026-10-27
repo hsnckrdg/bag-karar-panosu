@@ -162,6 +162,8 @@
   let gddChart = null;
   let sortKey = "name";
   let sortAsc = true;
+  const CACHE_KEY = "bagKararPanosu:lastSuccessfulData:v1";
+  const CACHE_TIME_KEY = "bagKararPanosu:lastSuccessfulTime:v1";
 
   const $ = (id) => document.getElementById(id);
   const fmt = (n, digits = 1) => Number.isFinite(n) ? n.toLocaleString("tr-TR", { maximumFractionDigits: digits, minimumFractionDigits: digits }) : "—";
@@ -194,6 +196,37 @@ const archiveCutoffISO = () => {
     const response = await fetch(url);
     if (!response.ok) throw new Error("API yanıtı: " + response.status);
     return response.json();
+  }
+
+  function saveLastSuccessfulData(data) {
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+      localStorage.setItem(CACHE_TIME_KEY, new Date().toISOString());
+    } catch (err) {
+      console.warn("Son başarılı veri kaydedilemedi:", err);
+    }
+  }
+
+  function loadLastSuccessfulData() {
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      return Array.isArray(data) && data.length ? data : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function getLastSuccessfulTime() {
+    try {
+      const raw = localStorage.getItem(CACHE_TIME_KEY);
+      if (!raw) return null;
+      const d = new Date(raw);
+      return Number.isNaN(d.getTime()) ? null : d;
+    } catch {
+      return null;
+    }
   }
   async function loadLocation(loc) {
     const forecastUrl = new URL("https://api.open-meteo.com/v1/forecast");
@@ -406,19 +439,46 @@ const archiveCutoffISO = () => {
     $("refreshBtn").disabled = true;
     $("connectionStatus").textContent = "Veri yükleniyor";
     setMessage("Open-Meteo'dan güncel tahmin ve tarihsel veriler alınıyor…");
+
     try {
       const results = await Promise.all(LOCATIONS.map(loadLocation));
       records = results;
+
+      const updatedAt = new Date();
+      saveLastSuccessfulData(results);
+
       render();
-      $("lastUpdated").textContent = new Date().toLocaleString("tr-TR");
+      $("lastUpdated").textContent = updatedAt.toLocaleString("tr-TR");
       $("connectionStatus").textContent = "Canlı veri";
       setMessage("Veriler başarıyla güncellendi. Tahminler değişebilir; karar öncesi güncel yerel koşulları kontrol edin.");
     } catch (err) {
-      $("connectionStatus").textContent = "Bağlantı hatası";
-      setMessage("API verisi alınamadı. İnternet bağlantısını kontrol edip yeniden deneyin. Hata: " + err.message, "error");
-      if (records.length) {
+      const cached = loadLastSuccessfulData();
+      const cachedAt = getLastSuccessfulTime();
+
+      if (cached) {
+        records = cached;
         render();
+        $("connectionStatus").textContent = "Kayıtlı veri";
+        $("lastUpdated").textContent = cachedAt
+          ? cachedAt.toLocaleString("tr-TR") + " (son başarılı veri)"
+          : "son başarılı veri";
+
+        setMessage(
+          "Open-Meteo'ya şu anda ulaşılamıyor. Ekranda tarayıcıya kaydedilmiş son başarılı veriler gösteriliyor." +
+          (cachedAt ? " Bu veriler " + cachedAt.toLocaleString("tr-TR") + " tarihinde alınmıştı." : "") +
+          " Güncel karar vermeden önce bağlantı yeniden sağlandığında verileri yenileyin.",
+          "warning"
+        );
+      } else if (records.length) {
+        render();
+        $("connectionStatus").textContent = "Oturumdaki veri";
         setMessage("Yeni veri alınamadı; ekranda bu oturumda alınmış son başarılı veriler gösteriliyor.", "warning");
+      } else {
+        $("connectionStatus").textContent = "Bağlantı hatası";
+        setMessage(
+          "API verisi alınamadı ve daha önce kaydedilmiş başarılı veri bulunamadı. İnternet bağlantısını kontrol edip yeniden deneyin. Hata: " + err.message,
+          "error"
+        );
       }
     } finally {
       $("refreshBtn").disabled = false;
