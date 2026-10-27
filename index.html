@@ -55,6 +55,15 @@
     .small { font-size: 18px; }
     .footer { margin: 24px 0 8px; color: var(--muted); }
     .loading { color: var(--muted); }
+    .empty-state {
+      padding: 24px;
+      border: 2px dashed #aeb9ad;
+      border-radius: 12px;
+      background: #fafbf7;
+      color: var(--muted);
+      text-align: center;
+      font-size: 18px;
+    }
     @media (max-width: 850px) {
       .wrap { padding: 14px; } header { padding: 22px; flex-direction: column; align-items: flex-start; }
       .grid { grid-template-columns: 1fr; } .charts { grid-template-columns: 1fr; }
@@ -440,10 +449,55 @@ const archiveCutoffISO = () => {
       renderDetails(selectedRecords());
     }));
   }
+  function renderEmptyState() {
+    $("kpiTemp").textContent = "—";
+    $("kpiRain").textContent = "—";
+    $("kpiGdd").textContent = "—";
+
+    $("alerts").innerHTML = '<div class="empty-state">Seçili alan için gösterilecek veri bulunamadı.</div>';
+    $("weatherSummary").textContent = "Hava tahmini verisi bulunamadı.";
+    $("gddSummary").textContent = "GDD karşılaştırması için veri bulunamadı.";
+    $("forecastTable").innerHTML = '<div class="empty-state">Tahmin tablosu için veri bulunamadı.</div>';
+    $("detailsTable").innerHTML = '<div class="empty-state">İlçe detayları için veri bulunamadı.</div>';
+
+    if (weatherChart) {
+      weatherChart.destroy();
+      weatherChart = null;
+    }
+    if (gddChart) {
+      gddChart.destroy();
+      gddChart = null;
+    }
+
+    setMessage("Seçili alan için gösterilecek veri bulunamadı. Farklı bir ilçe seçin veya verileri yeniden yükleyin.", "warning");
+  }
+
   function render() {
     const data = selectedRecords();
-    if (!data.length) return;
-    renderKpis(data); renderAlerts(data); renderCharts(data); renderForecastTable(data); renderDetails(data);
+    if (!data.length) {
+      renderEmptyState();
+      return;
+    }
+
+    const hasUsableData = data.some(r =>
+      Array.isArray(r.dates) &&
+      r.dates.length > 0 &&
+      (Number.isFinite(r.currentMax) ||
+       Number.isFinite(r.currentMin) ||
+       Number.isFinite(r.currentRain) ||
+       Number.isFinite(r.seasonGdd))
+    );
+
+    if (!hasUsableData) {
+      renderEmptyState();
+      return;
+    }
+
+    renderKpis(data);
+    renderAlerts(data);
+    renderCharts(data);
+    renderForecastTable(data);
+    renderDetails(data);
   }
   async function refresh() {
     $("refreshBtn").disabled = true;
