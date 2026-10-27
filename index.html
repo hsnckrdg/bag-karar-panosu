@@ -1,1 +1,139 @@
-<h1>Bağ Karar Panosu - Bulut Yayını Aktif</h1>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bağ Karar Panosu</title>
+    <!-- Stil için Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Grafikler için Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans p-4 md:p-8">
+    <div class="max-w-4xl mx-auto">
+        
+        <!-- Üst Başlık ve İlçe Seçimi -->
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-green-700">Bağ Karar Panosu</h1>
+                <p class="text-sm text-gray-500">Manisa Üzüm Üreticileri İçin Günlük Karar Destek Aracı</p>
+            </div>
+            <select id="ilceSecim" class="border border-gray-300 p-2 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-700 font-medium">
+                <option value="saruhanli">Saruhanlı</option>
+                <option value="alasehir">Alaşehir</option>
+                <option value="sarigol">Sarıgöl</option>
+            </select>
+        </header>
+
+        <!-- 3 KPI Kartı Alanı -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <!-- Kart 1: GDD -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-orange-500">
+                <h3 class="text-gray-500 text-xs font-bold uppercase tracking-wider">Büyüme Derece-Günü (GDD)</h3>
+                <p id="kpi-gdd" class="text-3xl font-bold mt-2 text-gray-800">--</p>
+                <p class="text-xs text-gray-400 mt-1">Gelişim için uygun</p>
+            </div>
+            <!-- Kart 2: İlaçlama Durumu -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-blue-500">
+                <h3 class="text-gray-500 text-xs font-bold uppercase tracking-wider">İlaçlama / Yağış Durumu</h3>
+                <p id="kpi-yagis" class="text-3xl font-bold mt-2 text-gray-800">--</p>
+                <p class="text-xs text-gray-400 mt-1">Rüzgar ve yağış verisine göre</p>
+            </div>
+            <!-- Kart 3: Don Riski -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-red-500">
+                <h3 class="text-gray-500 text-xs font-bold uppercase tracking-wider">Don Riski / Min. Sıcaklık</h3>
+                <p id="kpi-sicaklik" class="text-3xl font-bold mt-2 text-gray-800">--</p>
+                <p class="text-xs text-gray-400 mt-1">Gece ölçümleri baz alınmıştır</p>
+            </div>
+        </div>
+
+        <!-- Grafik Alanı -->
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+            <h3 class="text-gray-700 font-semibold mb-4">Önümüzdeki 7 Günlük Sıcaklık Trendi (°C)</h3>
+            <div class="relative h-64 w-full">
+                <canvas id="sicaklikGrafigi"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript: Veri Bağlama ve Grafik Çizimi -->
+    <script>
+        // Sayfa yüklendiğinde varsayılan olarak Saruhanlı verisini çek
+        document.addEventListener("DOMContentLoaded", () => {
+            veriGetir('saruhanli');
+        });
+
+        // Dropdown değiştiğinde yeni ilçe verisini çek
+        document.getElementById('ilceSecim').addEventListener('change', function(e) {
+            veriGetir(e.target.value);
+        });
+
+        let sicaklikChart = null; // Grafiği güncellemek için değişkende tutuyoruz
+
+        function veriGetir(ilce) {
+            // Python kodunuzun (fetch_data.py) oluşturduğu JSON dosyalarını okuyoruz
+            fetch(`data/${ilce}.json`)
+                .then(response => response.json())
+                .then(data => {
+                    // KPI Kartlarını Doldur
+                    // Not: JSON dosyanızdaki anahtar (key) isimlerine göre buraları değiştireceğiz
+                    document.getElementById('kpi-gdd').innerText = '12.4'; // Örnek: data.gdd_bugun
+                    document.getElementById('kpi-yagis').innerText = 'Uygun'; // Örnek: data.ilaclama_durumu
+                    document.getElementById('kpi-sicaklik').innerText = '8°C'; // Örnek: data.min_sicaklik
+
+                    // Grafiği Güncelle
+                    grafikCiz(
+                        ['Gün 1', 'Gün 2', 'Gün 3', 'Gün 4', 'Gün 5', 'Gün 6', 'Gün 7'], // Örnek: data.tarihler
+                        [15, 17, 16, 19, 21, 20, 18] // Örnek: data.maks_sicakliklar
+                    );
+                })
+                .catch(error => {
+                    console.error('Veri çekilemedi. JSON dosyası data/ klasöründe bulunmayabilir:', error);
+                });
+        }
+
+        function grafikCiz(etiketler, veriler) {
+            const ctx = document.getElementById('sicaklikGrafigi').getContext('2d');
+            
+            // Eğer önceki bir grafik varsa sil, yenisini çiz
+            if (sicaklikChart) {
+                sicaklikChart.destroy();
+            }
+
+            sicaklikChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: etiketler,
+                    datasets: [{
+                        label: 'Gündüz Sıcaklığı (°C)',
+                        data: veriler,
+                        borderColor: 'rgba(34, 197, 94, 1)', // Tailwind yeşil-500
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: 'rgba(34, 197, 94, 1)',
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
