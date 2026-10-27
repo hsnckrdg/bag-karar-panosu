@@ -42,6 +42,29 @@
     .charts { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; }
     .chart-wrap { position: relative; min-height: 280px; }
     .chart-summary { color: var(--muted); margin: 12px 0 0; }
+    .gdd-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+      align-items: center;
+      margin: 6px 0 10px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .legend-item { display: inline-flex; align-items: center; gap: 7px; }
+    .legend-band {
+      width: 28px; height: 10px; border-radius: 2px;
+      background: rgba(40,96,68,.14);
+      border: 1px solid rgba(40,96,68,.22);
+    }
+    .legend-bar {
+      width: 28px; height: 12px; border-radius: 2px;
+      background: #6e9876;
+    }
+    .legend-line {
+      width: 28px; height: 0;
+      border-top: 3px dashed #183d2b;
+    }
     .table-scroll { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; min-width: 700px; }
     th, td { text-align: left; padding: 13px 12px; border-bottom: 1px solid var(--line); }
@@ -139,6 +162,11 @@
       </article>
       <article class="card">
         <h3>GDD: bu sezon ve son 10 yıl</h3>
+        <div class="gdd-legend" aria-label="GDD grafik açıklamaları">
+          <span class="legend-item"><span class="legend-band"></span>10 yıllık değişim aralığı</span>
+          <span class="legend-item"><span class="legend-bar"></span>Yıllık GDD (°C·gün)</span>
+          <span class="legend-item"><span class="legend-line"></span>Son 10 yıl ortalaması</span>
+        </div>
         <div class="chart-wrap"><canvas id="gddChart" role="img" aria-label="Bu sezonun GDD değerinin geçmiş yıllarla karşılaştırması"></canvas></div>
         <p id="gddSummary" class="chart-summary">GDD karşılaştırması veri yüklendiğinde burada gösterilir.</p>
         <p class="muted small">GDD günlük hesabı: max(0, (günlük en yüksek + günlük en düşük) / 2 − 10). Tarihsel veri, Open-Meteo arşivinden hesaplanır.</p>
@@ -372,21 +400,21 @@ const archiveCutoffISO = () => {
         labels: gddLabels,
         datasets: [
           {
-            type: "line", label: "__rangeLow",
+            type: "line", label: "10 yıllık değişim aralığı (alt sınır)",
             data: rangeLow, borderColor: "rgba(40,96,68,0)", pointRadius: 0,
             borderWidth: 0, fill: false
           },
           {
-            type: "line", label: "10 yıllık GDD aralığı",
+            type: "line", label: "10 yıllık değişim aralığı (üst sınır)",
             data: rangeHigh, borderColor: "rgba(40,96,68,0)", pointRadius: 0,
             borderWidth: 0, backgroundColor: "rgba(40,96,68,.14)", fill: "-1"
           },
           {
-            type: "bar", label: "Yıllık GDD", data: gddValues,
+            type: "bar", label: "Yıllık GDD (°C·gün)", data: gddValues,
             backgroundColor: gddLabels.map((_, i) => i === gddLabels.length - 1 ? "#b56a00" : "#6e9876")
           },
           {
-            type: "line", label: "10 yıl ortalaması",
+            type: "line", label: "Son 10 yıl ortalaması",
             data: avgLine, borderColor: "#183d2b", borderWidth: 3,
             borderDash: [7, 5], pointRadius: 0, fill: false
           }
@@ -398,18 +426,7 @@ const archiveCutoffISO = () => {
         scales: {
           y: { beginAtZero: true, title: { display: true, text: "Birikimli GDD (°C·gün)" } }
         },
-        plugins: {
-          legend: {
-            position: "top",
-            align: "start",
-            labels: {
-              font: { size: 13 },
-              boxWidth: 24,
-              padding: 12,
-              filter: (item) => item.text !== "__rangeLow"
-            }
-          }
-        }
+        plugins: { legend: { display: false } }
       }
     });
     $("gddSummary").textContent = currentAverage != null && historicalAverage != null
@@ -454,49 +471,24 @@ const archiveCutoffISO = () => {
     $("kpiTemp").textContent = "—";
     $("kpiRain").textContent = "—";
     $("kpiGdd").textContent = "—";
-
     $("alerts").innerHTML = '<div class="empty-state">Seçili alan için gösterilecek veri bulunamadı.</div>';
     $("weatherSummary").textContent = "Hava tahmini verisi bulunamadı.";
     $("gddSummary").textContent = "GDD karşılaştırması için veri bulunamadı.";
     $("forecastTable").innerHTML = '<div class="empty-state">Tahmin tablosu için veri bulunamadı.</div>';
     $("detailsTable").innerHTML = '<div class="empty-state">İlçe detayları için veri bulunamadı.</div>';
 
-    if (weatherChart) {
-      weatherChart.destroy();
-      weatherChart = null;
-    }
-    if (gddChart) {
-      gddChart.destroy();
-      gddChart = null;
-    }
+    if (weatherChart) { weatherChart.destroy(); weatherChart = null; }
+    if (gddChart) { gddChart.destroy(); gddChart = null; }
 
     setMessage("Seçili alan için gösterilecek veri bulunamadı. Farklı bir ilçe seçin veya verileri yeniden yükleyin.", "warning");
   }
 
   function render() {
     const data = selectedRecords();
-
     if (!data.length) {
       renderEmptyState();
       return;
     }
-
-    const hasUsableData = data.some(r =>
-      Array.isArray(r.dates) &&
-      r.dates.length > 0 &&
-      (
-        Number.isFinite(r.currentMax) ||
-        Number.isFinite(r.currentMin) ||
-        Number.isFinite(r.currentRain) ||
-        Number.isFinite(r.seasonGdd)
-      )
-    );
-
-    if (!hasUsableData) {
-      renderEmptyState();
-      return;
-    }
-
     renderKpis(data);
     renderAlerts(data);
     renderCharts(data);
