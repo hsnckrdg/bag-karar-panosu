@@ -169,10 +169,16 @@
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
   };
-  const yesterdayISO = () => {
-    const d = new Date(); d.setDate(d.getDate() - 1);
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-  };
+const archiveCutoffDate = () => {
+  const d = new Date();
+  d.setDate(d.getDate() - 7);
+  return d;
+};
+
+const archiveCutoffISO = () => {
+  const d = archiveCutoffDate();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
   function gddForDays(maxTemps, minTemps) {
     return maxTemps.reduce((sum, t, i) => {
       const min = minTemps[i];
@@ -200,7 +206,7 @@
     archiveUrl.search = new URLSearchParams({
       latitude: loc.latitude, longitude: loc.longitude,
       start_date: `${new Date().getFullYear()-10}-01-01`,
-      end_date: yesterdayISO(),
+      end_date: archiveCutoffISO(),
       daily: "temperature_2m_max,temperature_2m_min",
       timezone: "Europe/Istanbul"
     });
