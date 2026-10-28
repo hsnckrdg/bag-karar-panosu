@@ -10,7 +10,7 @@ const ALLOWED_ORIGINS = new Set([
   "https://hsnckrdg.github.io",
   "http://localhost:5500",
   "http://127.0.0.1:5500",
-  "null",
+  "https://bag-karar-panosu.pages.dev",
 ]);
 
 function corsHeaders(request) {
